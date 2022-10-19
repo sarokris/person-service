@@ -11,9 +11,9 @@ import org.apache.http.HttpStatus;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PersonFindAllHandler implements RequestHandler<String, ApiResponse> {
+public class PersonFindAllHandler implements RequestHandler<Object, ApiResponse> {
     @Override
-    public ApiResponse handleRequest(String s, Context context) {
+    public ApiResponse handleRequest(Object s, Context context) {
         ApiResponse apiResponse;
         List<Person> result = new ArrayList<>();
         try {
