@@ -57,5 +57,12 @@
           <version>${junit.version}</version>
           <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-dynamodb</artifactId>
+            <version>1.12.315</version>
+        </dependency>
+        
     </dependencies>
 </project>
