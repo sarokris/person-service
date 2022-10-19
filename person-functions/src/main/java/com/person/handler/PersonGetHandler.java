@@ -2,19 +2,27 @@ package com.person.handler;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.person.model.ApiResponse;
 import com.person.model.Person;
 import com.person.repository.DynamoDBConfig;
+import org.apache.http.HttpStatus;
 
-public class PersonGetHandler implements RequestHandler<String,Object> {
+public class PersonGetHandler implements RequestHandler<String, ApiResponse> {
     @Override
-    public Object handleRequest(String s, Context context) {
-        Person resultObj;
+    public ApiResponse handleRequest(String id, Context context) {
+        ApiResponse response;
         try {
-            resultObj = DynamoDBConfig.getMapper().load(Person.class,s);
+           Person resultObj = DynamoDBConfig.getMapper().load(Person.class,id);
+           if(resultObj == null ){
+               response = ApiResponse.builder().statusCode(HttpStatus.SC_NOT_FOUND).body("Person not found in the DB").build();
+           }else{
+               response = ApiResponse.builder().statusCode(HttpStatus.SC_OK).body(resultObj).build();
+           }
+
         } catch (Exception e) {
             context.getLogger().log(e.getMessage());
-            return "Unable to fetch person from DB";
+            response = ApiResponse.builder().statusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR).body("Unable to fetch person from DB").build();
         }
-        return resultObj == null ? "Person not found in the DB" : resultObj;
+        return response;
     }
 }

@@ -2,7 +2,7 @@ package com.myorg;
 
 import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
-import software.amazon.awscdk.services.apigateway.RestApiProps;
+import software.amazon.awscdk.services.apigateway.*;
 import software.amazon.awscdk.services.dynamodb.Attribute;
 import software.amazon.awscdk.services.dynamodb.AttributeType;
 import software.amazon.awscdk.services.dynamodb.Table;
@@ -59,6 +59,26 @@ public class PersonInfraStack extends Stack {
         dynamoTable.grantReadWriteData(createPersonFun);
         dynamoTable.grantReadWriteData(getPersonFun);
         dynamoTable.grantReadWriteData(findAllPersonFun);
+
+        RestApiProps restApiProps = RestApiProps.builder()
+                .restApiName("Person Service").build();
+        RestApi restApi = new RestApi(this,"personApi",restApiProps);
+
+        //configuring the requestmapping
+        IResource personResource = restApi.getRoot().addResource("person");
+
+        //Lambda integration
+        Integration createIntegration = new LambdaIntegration(createPersonFun);
+        personResource.addMethod("POST",createIntegration);
+
+        //findById adding path param placeholder
+        IResource pathParamResource = personResource.addResource("{id}");
+        Integration getPersonIntgrtn = new LambdaIntegration(getPersonFun);
+        pathParamResource.addMethod("GET",getPersonIntgrtn);
+
+        Integration findAllPersonIntgrtn = new LambdaIntegration(findAllPersonFun);
+        personResource.addMethod("GET",findAllPersonIntgrtn);
+
 
 
 
