@@ -27,6 +27,9 @@ public class Person implements Serializable {
     private String lastname;
 
     @DynamoDBAttribute
+    private String phonenumber;
+
+    @DynamoDBAttribute
     private Address address;
 
 }
