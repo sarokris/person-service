@@ -7,16 +7,15 @@ import software.amazon.awscdk.StackProps;
 import java.util.Arrays;
 
 public class PersonInfraApp {
+
+    public static final String ACCOUNT_ID = "662065144489";
+    public static final String REGION_AP_SOUTH_1 = "ap-south-1";
+    public static final String PERSON_INFRA_STACK_ID = "PersonInfraStack";
+
     public static void main(final String[] args) {
         App app = new App();
 
-        new PersonInfraStack(app, "PersonInfraStack", StackProps.builder()
-                // If you don't specify 'env', this stack will be environment-agnostic.
-                // Account/Region-dependent features and context lookups will not work,
-                // but a single synthesized template can be deployed anywhere.
-
-                // Uncomment the next block to specialize this stack for the AWS Account
-                // and Region that are implied by the current CLI configuration.
+        new PersonInfraStack(app, PERSON_INFRA_STACK_ID, StackProps.builder()
                 /*
                 .env(Environment.builder()
                         .account(System.getenv("CDK_DEFAULT_ACCOUNT"))
@@ -27,11 +26,9 @@ public class PersonInfraApp {
                 // Uncomment the next block if you know exactly what Account and Region you
                 // want to deploy the stack to.
                 .env(Environment.builder()
-                        .account("662065144489")
-                        .region("ap-south-1")
+                        .account(ACCOUNT_ID)
+                        .region(REGION_AP_SOUTH_1)
                         .build())
-
-                // For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html
                 .build());
 
         app.synth();

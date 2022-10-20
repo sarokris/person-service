@@ -1,5 +1,6 @@
 package com.myorg;
 
+import org.apache.http.entity.ContentType;
 import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.services.apigateway.*;
@@ -15,35 +16,37 @@ import software.constructs.Construct;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 public class PersonInfraStack extends Stack {
+    public static final String DYNAMO_TABLE_NAME = "Persons";
+    public static final String DYNAMO_PRIMARY_KEY = "id";
+
     public PersonInfraStack(final Construct scope, final String id) {
         this(scope, id, null);
     }
 
     public PersonInfraStack(final Construct scope, final String id, final StackProps props) {
         super(scope, id, props);
-        String dynameTableName = "Persons";
-        String primaryKey = "id";
 
         Attribute partitionKey = Attribute.builder()
-                .name(primaryKey)
+                .name(DYNAMO_PRIMARY_KEY)
                 .type(AttributeType.STRING)
                 .build();
 
         TableProps tableProps = TableProps.builder()
-                .tableName(dynameTableName)
+                .tableName(DYNAMO_TABLE_NAME)
                 .partitionKey(partitionKey)
                 .removalPolicy(RemovalPolicy.DESTROY)
                 .build();
 
-        Table dynamoTable = new Table(this, dynameTableName,tableProps);
+        Table dynamoTable = new Table(this, DYNAMO_TABLE_NAME,tableProps);
 
         Map<String,String> lambdaEnvMap = new HashMap<>();
         lambdaEnvMap.put("TABLE_NAME",dynamoTable.getTableName());
-        lambdaEnvMap.put("PRIMARY_KEY", primaryKey);
+        lambdaEnvMap.put("PRIMARY_KEY", DYNAMO_PRIMARY_KEY);
 
         String createFunHandlerName = "com.person.handler.PersonCreateHandler";
         String getFunHandlerName = "com.person.handler.PersonGetHandler";
@@ -61,7 +64,9 @@ public class PersonInfraStack extends Stack {
         dynamoTable.grantReadWriteData(findAllPersonFun);
 
         RestApiProps restApiProps = RestApiProps.builder()
-                .restApiName("Person Service").build();
+                .restApiName("Person Service")
+                .binaryMediaTypes(Arrays.asList(ContentType.APPLICATION_JSON.getMimeType()))
+                .build();
         RestApi restApi = new RestApi(this,"personApi",restApiProps);
 
         //configuring the requestmapping
@@ -78,8 +83,6 @@ public class PersonInfraStack extends Stack {
 
         Integration findAllPersonIntgrtn = new LambdaIntegration(findAllPersonFun);
         personResource.addMethod("GET",findAllPersonIntgrtn);
-
-
 
 
     }
