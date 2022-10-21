@@ -9,24 +9,22 @@ import com.person.model.Person;
 import com.person.repository.DynamoDBConfig;
 import org.apache.http.HttpStatus;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class PersonFindAllHandler implements RequestHandler<Object, ApiResponse> {
     @Override
     public ApiResponse handleRequest(Object s, Context context) {
-        ApiResponse apiResponse;
-        List<Person> result = new ArrayList<>();
-        ObjectMapper jsonMapper = new ObjectMapper();
+        int statusCode = HttpStatus.SC_OK;
+        String responseBody;
         try {
             DynamoDBScanExpression scanExpression = new DynamoDBScanExpression();
             List<Person> scanResult = DynamoDBConfig.getMapper().scan(Person.class, scanExpression);
-            result.addAll(scanResult);
-            apiResponse = ApiResponse.builder().statusCode(HttpStatus.SC_OK).body(jsonMapper.writeValueAsString(result)).build();
+            responseBody = new ObjectMapper().writeValueAsString(scanResult);
         } catch (Exception e) {
             context.getLogger().log(e.getMessage());
-            apiResponse = ApiResponse.builder().statusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR).body(e.getMessage()).build();
+            statusCode = HttpStatus.SC_INTERNAL_SERVER_ERROR;
+            responseBody = e.getMessage();
         }
-        return apiResponse;
+        return ApiResponse.builder().statusCode(statusCode).body(responseBody).build();
     }
 }
