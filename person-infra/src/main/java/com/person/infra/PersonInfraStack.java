@@ -1,4 +1,4 @@
-package com.myorg;
+package com.person.infra;
 
 import org.apache.http.entity.ContentType;
 import software.amazon.awscdk.Duration;
@@ -39,6 +39,8 @@ public class PersonInfraStack extends Stack {
     public static final String FUNCTION_FIND_ALL_PERSON = "FindAllPerson";
     public static final String STRING_TABLE_NAME = "TABLE_NAME";
     public static final String STRING_PRIMARY_KEY = "PRIMARY_KEY";
+    public static final String PERSON_SERVICE_API_NAME = "Person Service";
+    public static final String CONTEXT_PATH_PERSON = "person";
 
     public PersonInfraStack(final Construct scope, final String id) {
         this(scope, id, null);
@@ -46,15 +48,27 @@ public class PersonInfraStack extends Stack {
 
     public PersonInfraStack(final Construct scope, final String id, final StackProps props) {
         super(scope, id, props);
-
-        Table dynamoTable = constructDynamoTable();
-        constructLambdaFunctionsApis(dynamoTable);
+        constructStack();
     }
 
-    private void constructLambdaFunctionsApis(Table dynamoTable) {
+    private void constructStack() {
+        //DynamoDB Table construction
+        Table dynamoTable = constructDynamoTable();
 
+        //creating Lambdas
+        Map<String,Function> lamdaFunMap =  constructLambdaFunctions();
+        lamdaFunMap.forEach((k,v) -> dynamoTable.grantReadWriteData(v));
+
+        //APIGateway configuration
+        IResource personResource = constructApis();
+        integrateLambda(personResource,lamdaFunMap);
+
+
+    }
+
+    private Map<String, Function> constructLambdaFunctions() {
         Map<String,String> lambdaEnvMap = new HashMap<>();
-        lambdaEnvMap.put(STRING_TABLE_NAME,dynamoTable.getTableName());
+        lambdaEnvMap.put(STRING_TABLE_NAME,DYNAMO_TABLE_NAME);
         lambdaEnvMap.put(STRING_PRIMARY_KEY, DYNAMO_PRIMARY_KEY);
 
         Map<String,String> funMetadataMap = new HashMap<>();
@@ -62,21 +76,23 @@ public class PersonInfraStack extends Stack {
         funMetadataMap.put(FUNCTION_GET_PERSON,GET_FUN_HANDLER);
         funMetadataMap.put(FUNCTION_FIND_ALL_PERSON,FIND_ALL_FUN_HANDLER);
 
-        Map<String,Function> lamdaFunMap = generateLambdaFunctions(funMetadataMap,lambdaEnvMap);
+        return generateLambdaFunctions(funMetadataMap,lambdaEnvMap);
+    }
 
-        lamdaFunMap.forEach((k,v) -> dynamoTable.grantReadWriteData(v));
-
+    private IResource constructApis() {
 
         RestApiProps restApiProps = RestApiProps.builder()
-                .restApiName("Person Service")
+                .restApiName(PERSON_SERVICE_API_NAME)
                 .binaryMediaTypes(singletonList(ContentType.APPLICATION_JSON.getMimeType()))
                 .build();
 
-        RestApi restApi = new RestApi(this,"personApi",restApiProps);
+        RestApi restApi = new RestApi(this,PERSON_SERVICE_API_NAME,restApiProps);
 
         //configuring the requestmapping
-        IResource personResource = restApi.getRoot().addResource("person");
+        return restApi.getRoot().addResource(CONTEXT_PATH_PERSON);
+    }
 
+    private void integrateLambda(IResource personResource,Map<String, Function> lamdaFunMap) {
         //Lambda integration
         Integration createIntegration = new LambdaIntegration(lamdaFunMap.get(FUNCTION_CREATE_PERSON));
         personResource.addMethod(HttpMethod.POST.name(),createIntegration);

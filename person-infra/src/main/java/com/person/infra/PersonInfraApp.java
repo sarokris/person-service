@@ -1,10 +1,8 @@
-package com.myorg;
+package com.person.infra;
 
 import software.amazon.awscdk.App;
 import software.amazon.awscdk.Environment;
 import software.amazon.awscdk.StackProps;
-
-import java.util.Arrays;
 
 public class PersonInfraApp {
 
