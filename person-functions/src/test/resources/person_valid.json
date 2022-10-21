@@ -1,0 +1,10 @@
+{
+  "firstname": "fname",
+  "lastname": "sname",
+  "phonenumber" : "+31 (0)6 1111111",
+  "address": {
+    "postalCode" : "2592 SZ",
+    "city" : "Den Haag",
+    "houseNumber" : "35"
+  }
+}
