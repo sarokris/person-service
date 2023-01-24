@@ -4,6 +4,15 @@ import org.apache.http.entity.ContentType;
 import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.services.apigateway.*;
+import software.amazon.awscdk.services.cognito.CognitoDomainOptions;
+import software.amazon.awscdk.services.cognito.OAuthFlows;
+import software.amazon.awscdk.services.cognito.OAuthScope;
+import software.amazon.awscdk.services.cognito.OAuthSettings;
+import software.amazon.awscdk.services.cognito.SignInAliases;
+import software.amazon.awscdk.services.cognito.UserPool;
+import software.amazon.awscdk.services.cognito.UserPoolClientOptions;
+import software.amazon.awscdk.services.cognito.UserPoolDomainOptions;
+import software.amazon.awscdk.services.cognito.UserPoolProps;
 import software.amazon.awscdk.services.dynamodb.Attribute;
 import software.amazon.awscdk.services.dynamodb.AttributeType;
 import software.amazon.awscdk.services.dynamodb.Table;
@@ -17,7 +26,9 @@ import software.constructs.Construct;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.singletonList;
@@ -102,8 +113,50 @@ public class PersonInfraStack extends Stack {
         Integration getPersonIntgrtn = new LambdaIntegration(lamdaFunMap.get(FUNCTION_GET_PERSON));
         pathParamResource.addMethod(HttpMethod.GET.name(),getPersonIntgrtn);
 
+        SignInAliases signInAliases = SignInAliases.builder().username(true).email(true).build();
+        UserPool personServiceUserPool = new UserPool(this, "person-service-pool",
+                                                        UserPoolProps.builder()
+                                                                .selfSignUpEnabled(true)
+                                                                .signInAliases(signInAliases)
+                                                                .removalPolicy(RemovalPolicy.RETAIN)
+                                                                .build());
+        personServiceUserPool.addDomain("CognitoDomain", UserPoolDomainOptions.builder()
+                .cognitoDomain(CognitoDomainOptions.builder()
+                        .domainPrefix("my-awesome-app")
+                        .build())
+                .build());
+
+        personServiceUserPool.addClient("app-client", UserPoolClientOptions.builder()
+                .oAuth(OAuthSettings.builder()
+                        .flows(OAuthFlows.builder()
+                                .implicitCodeGrant(true)
+                                .authorizationCodeGrant(true)
+                                .build())
+                        .scopes(List.of(OAuthScope.OPENID,OAuthScope.EMAIL,OAuthScope.COGNITO_ADMIN,OAuthScope.PROFILE))
+                        .callbackUrls(List.of("https://my-app-domain.com/welcome"))
+                        .logoutUrls(List.of("https://my-app-domain.com/signin"))
+                        .build())
+                .build());
+
+        CognitoUserPoolsAuthorizerProps personCognitoAuthoProps = CognitoUserPoolsAuthorizerProps.builder()
+                                                                        .cognitoUserPools(List.of(personServiceUserPool))
+                                                                        .authorizerName("personCognitoAuthorizer")
+                                                                        .build();
+
+        CognitoUserPoolsAuthorizer auth = new CognitoUserPoolsAuthorizer(this, "personCognitoAuthorizer", personCognitoAuthoProps);
+
+//        Lamb
+
+
         Integration findAllPersonIntgrtn = new LambdaIntegration(lamdaFunMap.get(FUNCTION_FIND_ALL_PERSON));
-        personResource.addMethod(HttpMethod.GET.name(),findAllPersonIntgrtn);
+
+        MethodOptions methodOptions = MethodOptions.builder()
+                                            .authorizationType(AuthorizationType.CUSTOM)
+                                            .authorizer(auth)
+                                            .authorizationScopes(List.of("phone","email","openid","aws.cognito.signin.user.admin","profile"))
+                                            .build();
+
+        personResource.addMethod(HttpMethod.GET.name(),findAllPersonIntgrtn, methodOptions);
     }
 
     private Map<String, Function> generateLambdaFunctions(Map<String, String> funMetadataMap, Map<String, String> lambdaEnvMap) {
